@@ -5,6 +5,11 @@ namespace App\Providers;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
 
+use Illuminate\Auth\Access\Response;
+
+use App\Models\User;
+use App\Models\Comment;
+
 class AuthServiceProvider extends ServiceProvider
 {
     /**
@@ -14,6 +19,7 @@ class AuthServiceProvider extends ServiceProvider
      */
     protected $policies = [
         // 'App\Models\Model' => 'App\Policies\ModelPolicy',
+        'App\Models\Article' => 'App\Policies\ArticleControllerPolicy',
     ];
 
     /**
@@ -24,7 +30,28 @@ class AuthServiceProvider extends ServiceProvider
     public function boot()
     {
         $this->registerPolicies();
+        
+        Gate::before(function (User $user) {
+            if ($user->role == 'moderator')
+                return True;
+        });
 
+        Gate::define('adminComment', function (User $user, Comment $comment) {
+            // User is author of comment
+            if($user->role === 'moderator')
+                return Response::allow();
+            else
+                return Response::deny('Отказано в доступе!');    
+        });
+
+        Gate::define('comment', function (User $user, Comment $comment) {
+            // User is author of comment
+            if($user->id == $comment->author_id)
+                return Response::allow();
+            else
+                return Response::deny('Отказано в доступе!');    
+        });
         //
+
     }
 }
